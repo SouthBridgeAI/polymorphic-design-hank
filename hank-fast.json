@@ -1,0 +1,181 @@
+{
+  "$schema": "https://unpkg.com/hankweave@latest/schemas/hank.schema.json",
+  "meta": {
+    "name": "Polymorphic Design (Fast)",
+    "version": "0.5.0",
+    "description": "Budget variant — all Sonnet. Same pipeline, lower cost, faster. Good for iteration and testing."
+  },
+  "globalSystemPromptFile": "./prompts/system.md",
+  "hank": [
+    {
+      "id": "understand",
+      "name": "Understand Intent",
+      "description": "Deep thinking about purpose, audience, function, and emotion. Produces the greenprint.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/understand/prompt.md",
+      "rigSetup": [
+        {
+          "type": "copy",
+          "copy": {
+            "from": "./scripts",
+            "to": "scripts"
+          }
+        },
+        {
+          "type": "command",
+          "command": {
+            "run": "bash scripts/inventory-design-pack.sh",
+            "workingDirectory": "project"
+          },
+          "allowFailure": true
+        }
+      ],
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ]
+    },
+    {
+      "id": "research",
+      "name": "Research & Enrich",
+      "description": "Reference archaeology, design-pack analysis, optional web research. Enriches the greenprint.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/research/prompt.md",
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ]
+    },
+    {
+      "id": "build-foundation",
+      "name": "Build Foundation",
+      "description": "Tokens, layout, hierarchy, all content placed. Intentionally boring \u2014 correct structure only.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/build-foundation/prompt.md",
+      "appendSystemPromptFile": "./codons/build/system.md",
+      "env": {
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "65536"
+      },
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ]
+    },
+    {
+      "id": "build-character",
+      "name": "Build Character",
+      "description": "Creative push: signature element, custom visualizations, dramatic typography, distinctiveness.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/build-character/prompt.md",
+      "appendSystemPromptFile": "./codons/build/system.md",
+      "env": {
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "65536"
+      },
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ]
+    },
+    {
+      "type": "loop",
+      "id": "review-loop",
+      "name": "Review & Refine",
+      "terminateOn": {
+        "type": "iterationLimit",
+        "limit": 2
+      },
+      "archiveOnSuccess": [
+        "workspace/artifact"
+      ],
+      "codons": [
+        {
+          "id": "review",
+          "name": "Structural Review",
+          "description": "Fresh-eyes audit of the artifact against design spec. Produces feedback.",
+          "model": "sonnet",
+          "continuationMode": "fresh",
+          "promptFile": "./codons/review/prompt.md",
+          "checkpointedFiles": [
+            "workspace/**/*"
+          ]
+        },
+        {
+          "id": "fix",
+          "name": "Apply Improvements",
+          "description": "Addresses review feedback and improves the artifact.",
+          "model": "sonnet",
+          "continuationMode": "fresh",
+          "promptFile": "./codons/fix/prompt.md",
+          "env": {
+            "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "65536"
+          },
+          "rigSetup": [
+            {
+              "type": "command",
+              "command": {
+                "run": "rm -rf workspace/artifact-backup && cp -r workspace/artifact workspace/artifact-backup",
+                "workingDirectory": "project"
+              },
+              "allowFailure": true
+            }
+          ],
+          "checkpointedFiles": [
+            "workspace/**/*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "build-polish",
+      "name": "Build Polish",
+      "description": "Craft details: five states, transitions, accessibility, spacing, edge cases. Absorbs review feedback.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/build-polish/prompt.md",
+      "appendSystemPromptFile": "./codons/build/system.md",
+      "env": {
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "65536"
+      },
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ]
+    },
+    {
+      "id": "verify",
+      "name": "Visual Verify",
+      "description": "Screenshots the artifact and does a final visual assessment.",
+      "model": "sonnet",
+      "continuationMode": "fresh",
+      "promptFile": "./codons/verify/prompt.md",
+      "rigSetup": [
+        {
+          "type": "command",
+          "command": {
+            "run": "bash scripts/screenshot.sh",
+            "workingDirectory": "project"
+          },
+          "allowFailure": true
+        }
+      ],
+      "checkpointedFiles": [
+        "workspace/**/*"
+      ],
+      "outputFiles": [
+        {
+          "beforeCopy": [
+            {
+              "type": "command",
+              "command": {
+                "run": "bash scripts/embed-fonts.sh",
+                "workingDirectory": "project"
+              }
+            }
+          ],
+          "copy": [
+            "workspace/artifact/**/*"
+          ]
+        }
+      ]
+    }
+  ]
+}
